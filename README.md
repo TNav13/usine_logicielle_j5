@@ -1,1 +1,1 @@
-![CI](https://github.com/Sup2Vinci/mon-projet-flask/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/TNav13/mon-projet-flask/actions/workflows/ci.yml/badge.svg)
