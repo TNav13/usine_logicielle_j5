@@ -10,3 +10,7 @@ Linter: `Ruff`
 2. 
 Nous faisons un `--check` car il s'agit d'une vérification et non d'une modification. Le développeur doit modifier en local.
 
+3. 
+Utilsiation de ruff car plus rapide, écrit en rust cumule: flake8 + black et trie les imports. 
+Un fichier en .toml permet d'indiquer les règles a activer pour le projet pour correction etc, permet de savoir rapidement comment il est actif. 
+
