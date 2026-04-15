@@ -24,20 +24,27 @@ jobs:
                 ${{ runner.os }}-pip-
           - name: Installer les dépendances
             run: pip install -r requirements.txt
+
           - name: Formatage (black)
             run: black --check src/ tests/
+
           - name: Linting avec Ruff
             run: ruff check src/ tests/
+
           - name: Analyse sécurité Bandit
             run: bandit -r src/ -ll
+
           - name: Analyse sécurité Semgrep
             run: semgrep --config auto --error src/
+
           - name: Lancer les tests avec couverture
             run: |
               pytest --cov=src \
               --cov-report=term \
               --cov-report=html:coverage-report \
+              --cov-fail-under=70 \
               -v
+
           - name: Sauvegarder le rapport
             uses: actions/upload-artifact@v4
             if: always()

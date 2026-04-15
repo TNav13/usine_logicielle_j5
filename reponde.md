@@ -29,3 +29,6 @@ pre-commit hooks. Est-ce un problème ? Pourquoi ?
 
 Question 8 (compte-rendu) : Qu'est-ce qu'un Quality Gate ? Donnez 3 exemples de conditions
 qu'on pourrait y mettre.
+
+Question 9 (compte-rendu) : Décrivez l'ordre des vérifications dans votre pipeline final et
+expliquez pourquoi cet ordre est important.
