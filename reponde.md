@@ -8,3 +8,5 @@ Formateur: `black`
 Linter: `Ruff`
 
 2. 
+Nous faisons un `--check` car il s'agit d'une vérification et non d'une modification. Le développeur doit modifier en local.
+
