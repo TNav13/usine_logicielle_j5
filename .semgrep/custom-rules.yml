@@ -1,0 +1,7 @@
+rules:
+  - id: no-print-in-prod
+    patterns:
+      - pattern: print(...)
+    message: "L'utilisation de print() est déconseillée en production. Utilisez plutôt le module logging pour une meilleure gestion des logs."
+    languages: [python]
+    severity: WARNING
