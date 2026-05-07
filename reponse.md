@@ -1,56 +1,38 @@
-# Compte-rendu - TP4 Sécurité dans l'usine logicielle
+# Compte-rendu - TP 5 : Livraison Continue (CD)
 
-**Auteur :** Binôme d'étudiants M1 DevOps (Sup de Vinci)
+**Étudiant** : [Ton Nom]
+**Cours** : Usine Logicielle - Master 1 DevOps
+**Date** : 7 mai 2026
 
-## Partie 1 — Scan de dépendances avec pip-audit
+#### Question 1 : Expliquez chaque instruction du Dockerfile. Pourquoi copie-t-on requirements.txt avant le code source ?
+- `FROM python:3.12-slim` : Image de base légère avec Python 3.12.
+- `WORKDIR /app` : Définit le dossier de travail.
+- `COPY requirements.txt .` : Copie le fichier de dépendances.
+- `RUN pip install --no-cache-dir -r requirements.txt` : Installe les dépendances sans cache pour optimiser la taille.
+- `COPY src/ ./src/` : Copie le code source.
+- `HEALTHCHECK` : Vérifie la santé de l'application sur `/health`.
+- `EXPOSE 5000` : Port d'écoute.
+- `CMD` : Lance l'application avec gunicorn.
 
-### 1.1 et 1.2 — Expérimentation locale
-J'ai testé `pip-audit` sur notre projet. Bien que quelques vulnérabilités mineures soient présentes dans l'environnement global, l'outil est très efficace. En simulant une vulnérabilité avec `flask==2.0.0`, j'ai pu observer que l'outil identifie précisément la version fautive, l'ID de la vulnérabilité (CVE/GHSA) et les versions de correction (2.2.5 ou 2.3.2).
+**Pourquoi copier `requirements.txt` avant ?** Pour utiliser le cache des couches de Docker. Les dépendances changent moins souvent que le code ; les installer avant permet de gagner du temps lors des builds suivants.
 
-### Questions
-**Question 1 : Qu'est-ce qu'une CVE ? Expliquez le score CVSS et donnez un exemple de CVE avec son impact.**
+#### Question 2 : Quelle est la différence entre une VM et un container Docker ? Quel est l'avantage principal des containers ?
+Une VM virtualise le matériel et embarque un OS complet, ce qui est lourd. Un conteneur partage le noyau de l'OS hôte et n'isole que l'application. L'avantage principal est la **légèreté** et la **portabilité**.
 
-*   **CVE (Common Vulnerabilities and Exposures) :** C'est un dictionnaire de vulnérabilités de sécurité informatique rendu public. Chaque entrée (ex: CVE-2023-30861) décrit une faille spécifique dans un logiciel ou un matériel.
-*   **Score CVSS (Common Vulnerability Scoring System) :** C'est un système de notation (de 0 à 10) qui permet d'évaluer la sévérité d'une vulnérabilité. Il prend en compte des critères comme la facilité d'exploitation, l'impact sur la confidentialité, l'intégrité et la disponibilité des données. Un score au-dessus de 7.0 est généralement considéré comme critique ou élevé.
-*   **Exemple :** La CVE-2023-30861 dans Flask (CVSS 7.5). Elle permettait une fuite de cookies de session via des serveurs proxy de mise en cache, ce qui pouvait permettre à un attaquant de voler une session utilisateur.
+#### Question 3 : Quel est l'intérêt de Docker Compose par rapport à un simple docker run ? Dans quel cas Docker Compose devient-il indispensable ?
+Docker Compose permet de centraliser la configuration dans un fichier YAML. Il devient indispensable pour gérer des applications **multi-services** (ex: API + Base de données) et leurs interactions.
 
-**Question 2 : Pourquoi est-il important de scanner les dépendances et pas seulement votre propre code ?**
+#### Question 4 : Pourquoi tagger une image avec plusieurs tags (SHA, version, latest) ? Pourquoi ne doit-on pas utiliser :latest en production ?
+Le SHA assure la traçabilité, la version la lisibilité, et `latest` la facilité d'accès à la dernière version. On évite `latest` en production car il est **muable** : un déploiement pourrait récupérer une version non testée par accident.
 
-Il est crucial de scanner les dépendances car une application moderne repose majoritairement sur du code tiers (bibliothèques open-source). On parle de **sécurité de la "Supply Chain"**. Même si mon propre code est parfaitement sécurisé, si une bibliothèque que j'utilise (comme Flask ou Requests) possède une faille connue, mon application devient vulnérable. Les attaquants ciblent souvent ces dépendances populaires car elles offrent un point d'entrée sur de très nombreux systèmes simultanément.
+#### Question 5 : Qu'est-ce qu'un registre de conteneurs ? Comparez ghcr.io, Docker Hub et Google Artifact Registry.
+C'est un entrepôt d'images. `ghcr.io` est intégré à GitHub, `Docker Hub` est le standard public, et `Artifact Registry` est la solution entreprise de Google Cloud.
 
-## Partie 2 — Dependabot : mises à jour automatiques
+#### Question 6 : Pourquoi teste-t-on le conteneur dans la CI avant de le pousser sur le registre ?
+Pour garantir que l'image construite est réellement fonctionnelle et éviter de polluer le registre avec des images corrompues qui pourraient faire échouer les déploiements.
 
-J'ai configuré Dependabot pour automatiser la surveillance et la mise à jour de nos dépendances Python et de nos Actions GitHub.
+#### Question 7 : Expliquez la condition if: github.ref == 'refs/heads/main'. Pourquoi le build Docker ne se déclenche-t-il pas sur les Pull Requests ?
+Cette condition limite l'exécution du job à la branche `main`. On ne déclenche pas le build/push sur les PR pour ne pas publier d'images provenant de code non encore validé et mergé.
 
-### Question
-**Question 3 : Quel est l'avantage de Dependabot par rapport à un scan manuel avec pip-audit ? Pourquoi configure-t-on aussi l'écosystème github-actions ?**
-
-*   **Avantage de Dependabot :** Contrairement à `pip-audit` qui est un outil de détection (il nous dit ce qui ne va pas), Dependabot est un outil de **remédiation proactive**. Il surveille les dépôts en continu et, dès qu'une mise à jour (de sécurité ou non) est disponible, il crée automatiquement une Pull Request avec les changements nécessaires. Cela réduit la "dette de sécurité" sans intervention manuelle constante.
-*   **Écosystème github-actions :** Les Actions GitHub que nous utilisons sont aussi des logiciels tiers qui peuvent avoir des vulnérabilités ou devenir obsolètes. Les scanner permet de s'assurer que notre infrastructure de CI/CD est toujours basée sur des versions stables et sécurisées.
-
-## Partie 3 — Gestion des secrets avec GitHub Secrets
-
-J'ai intégré l'utilisation des secrets GitHub pour éviter de stocker des informations sensibles en dur dans le code.
-
-### Question
-**Question 4 : Pourquoi ne doit-on jamais mettre un secret directement dans le code source ? Citez 3 endroits où stocker des secrets de manière sécurisée.**
-
-*   **Pourquoi pas en dur ?** Si un secret est dans le code source, toute personne ayant accès au dépôt (même en lecture) peut le voir. Si le dépôt est public, il est exposé au monde entier. De plus, une fois commités, les secrets restent dans l'historique Git même si on les supprime plus tard. Des outils automatisés scannent en permanence GitHub à la recherche de clés API fuyant ainsi.
-*   **3 endroits sécurisés :**
-    1.  **Gestionnaires de secrets (Vaults) :** HashiCorp Vault, AWS Secrets Manager, GCP Secret Manager.
-    2.  **Secrets de plateforme CI/CD :** GitHub Secrets, GitLab CI/CD Variables.
-    3.  **Variables d'environnement locales :** Chargées via un fichier `.env` (exclu du commit via `.gitignore`) ou configurées sur le serveur d'exécution.
-
-## Partie 4 — Détection de secrets avec GitLeaks
-
-J'ai testé GitLeaks localement et simulé une fuite de secret. L'outil a parfaitement détecté la clé API GCP factice.
-
-### Questions
-**Question 5 : Un développeur a accidentellement commité une clé API GCP dans le code, puis l'a supprimée dans un commit suivant. Le secret est-il en sécurité ? Que faut-il faire ?**
-
-*   **Sécurité :** Non, le secret n'est pas en sécurité. Il reste présent dans l'historique Git et peut être récupéré par n'importe qui ayant accès au dépôt.
-*   **Actions à mener :** Il faut impérativement révoquer (invalider) le secret immédiatement auprès du fournisseur, puis nettoyer l'historique Git (avec `BFG` ou `git-filter-repo`) et enfin générer une nouvelle clé.
-
-**Question 6 : Pourquoi GitLeaks est-il placé au tout début du pipeline, avant même le linting ?**
-
-Pour appliquer le principe du **fail-fast**. La détection d'un secret est une faille de sécurité majeure qui doit stopper immédiatement le pipeline pour éviter de propager le risque et pour économiser des ressources de calcul inutiles sur un commit qui de toute façon sera rejeté.
+#### Question 8 : Pourquoi utilise-t-on ${{ github.sha }} comme tag d'image ? Quel avantage par rapport à un numéro de version manuel ?
+Le SHA est unique et généré automatiquement pour chaque commit, garantissant une **immuabilité** parfaite et une traçabilité directe entre une image et son code source exact, sans risque d'erreur humaine.
