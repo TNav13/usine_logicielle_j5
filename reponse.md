@@ -27,3 +27,16 @@ J'ai configuré Dependabot pour automatiser la surveillance et la mise à jour d
 
 *   **Avantage de Dependabot :** Contrairement à `pip-audit` qui est un outil de détection (il nous dit ce qui ne va pas), Dependabot est un outil de **remédiation proactive**. Il surveille les dépôts en continu et, dès qu'une mise à jour (de sécurité ou non) est disponible, il crée automatiquement une Pull Request avec les changements nécessaires. Cela réduit la "dette de sécurité" sans intervention manuelle constante.
 *   **Écosystème github-actions :** Les Actions GitHub que nous utilisons sont aussi des logiciels tiers qui peuvent avoir des vulnérabilités ou devenir obsolètes. Les scanner permet de s'assurer que notre infrastructure de CI/CD est toujours basée sur des versions stables et sécurisées.
+
+## Partie 3 — Gestion des secrets avec GitHub Secrets
+
+J'ai intégré l'utilisation des secrets GitHub pour éviter de stocker des informations sensibles en dur dans le code.
+
+### Question
+**Question 4 : Pourquoi ne doit-on jamais mettre un secret directement dans le code source ? Citez 3 endroits où stocker des secrets de manière sécurisée.**
+
+*   **Pourquoi pas en dur ?** Si un secret est dans le code source, toute personne ayant accès au dépôt (même en lecture) peut le voir. Si le dépôt est public, il est exposé au monde entier. De plus, une fois commités, les secrets restent dans l'historique Git même si on les supprime plus tard. Des outils automatisés scannent en permanence GitHub à la recherche de clés API fuyant ainsi.
+*   **3 endroits sécurisés :**
+    1.  **Gestionnaires de secrets (Vaults) :** HashiCorp Vault, AWS Secrets Manager, GCP Secret Manager.
+    2.  **Secrets de plateforme CI/CD :** GitHub Secrets, GitLab CI/CD Variables.
+    3.  **Variables d'environnement locales :** Chargées via un fichier `.env` (exclu du commit via `.gitignore`) ou configurées sur le serveur d'exécution.
