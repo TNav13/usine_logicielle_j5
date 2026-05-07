@@ -36,3 +36,36 @@ Cette condition limite l'exécution du job à la branche `main`. On ne déclench
 
 #### Question 8 : Pourquoi utilise-t-on ${{ github.sha }} comme tag d'image ? Quel avantage par rapport à un numéro de version manuel ?
 Le SHA est unique et généré automatiquement pour chaque commit, garantissant une **immuabilité** parfaite et une traçabilité directe entre une image et son code source exact, sans risque d'erreur humaine.
+
+#### Question 9 : Qu'est-ce qu'un rollback ? Pourquoi est-il essentiel de versionner les images Docker avec des tags précis ?
+Un **rollback** consiste à revenir à une version précédente fonctionnelle de l'application en cas d'erreur sur la nouvelle version. Versionner avec des tags précis (comme le SHA) est indispensable pour identifier sans ambiguïté l'image stable à laquelle on souhaite revenir.
+
+#### Question 10 : Expliquez la différence entre Continuous Delivery et Continuous Deployment. Lequel avez-vous mis en place dans ce TP ?
+La **Continuous Delivery** automatise le build et les tests jusqu'à la mise à disposition d'un livrable (l'image Docker sur le registre), mais le déploiement final nécessite une action humaine. Le **Continuous Deployment** automatise le déploiement jusqu'à la production. Dans ce TP, nous avons mis en place la **Continuous Delivery**.
+
+#### Question 11 : Quels risques pose le déploiement automatique ? Comment les atténuer ?
+Le déploiement automatique peut introduire des bugs en production si les tests ne sont pas parfaits. On atténue ces risques avec des **tests automatisés exhaustifs**, des **déploiements progressifs** et un **monitoring en temps réel** permettant un rollback rapide.
+
+#### Question 12 : Expliquez le principe du multi-stage build. Quel est l'avantage en termes de taille et de sécurité ? Montrez votre Dockerfile modifié et la différence de taille.
+Le **multi-stage build** permet d'utiliser plusieurs étapes de build. On utilise une image complète pour préparer l'environnement, puis on ne copie que le strict nécessaire dans une image finale ultra-légère.
+- **Taille** : On gagne plusieurs centaines de Mo en supprimant les outils de build et les caches.
+- **Sécurité** : L'image finale contient moins de binaires, ce qui réduit les vulnérabilités potentielles.
+
+**Dockerfile optimisé :**
+```dockerfile
+# Stage 1: Build
+FROM python:3.12-slim as builder
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+# Stage 2: Run
+FROM python:3.12-slim
+WORKDIR /app
+COPY --from=builder /root/.local /root/.local
+COPY src/ ./src/
+ENV PATH=/root/.local/bin:$PATH
+EXPOSE 5000
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "src.app:app"]
+```
+Lien : https://docs.docker.com/build/building/multi-stage/

@@ -1,13 +1,19 @@
-FROM python:3.12-slim
-
+# Stage 1: Build
+FROM python:3.12-slim as builder
 WORKDIR /app
-
-# Dependances d'abord (cache Docker)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --user -r requirements.txt
 
-# Code source
+# Stage 2: Run
+FROM python:3.12-slim
+WORKDIR /app
+# Copie des dependances installees dans le stage precedent
+COPY --from=builder /root/.local /root/.local
+# Copie du code source
 COPY src/ ./src/
+
+# Ajout du path pour les binaires python (gunicorn)
+ENV PATH=/root/.local/bin:$PATH
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD curl -f http://localhost:5000/health || exit 1
